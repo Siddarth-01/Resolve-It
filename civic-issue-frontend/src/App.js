@@ -4,6 +4,8 @@ import IssueForm from "./components/IssueForm";
 import MyIssues from "./components/MyIssues";
 import NotFound from "./components/NotFound";
 import Navbar from "./components/Navbar";
+import Login from "./components/Login";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
@@ -16,7 +18,15 @@ function App() {
         <main className="py-8">
           <Routes>
             <Route path="/" element={<IssueForm />} />
-            <Route path="/my-issues" element={<MyIssues />} />
+            <Route path="/login" element={<Login />} />
+            <Route
+              path="/my-issues"
+              element={
+                <ProtectedRoute>
+                  <MyIssues />
+                </ProtectedRoute>
+              }
+            />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
