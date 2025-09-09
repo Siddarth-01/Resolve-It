@@ -70,24 +70,10 @@ const IssueForm = () => {
     );
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Log all values to console
-    console.log("Form Data:", {
-      title: formData.title,
-      description: formData.description,
-      image: formData.image
-        ? {
-            name: formData.image.name,
-            size: formData.image.size,
-            type: formData.image.type,
-          }
-        : null,
-      location: formData.location,
-    });
-
-    // You can add additional validation here
+    // Validation
     if (!formData.title.trim()) {
       alert("Please enter an issue title");
       return;
@@ -97,7 +83,57 @@ const IssueForm = () => {
       return;
     }
 
-    console.log("Issue submitted successfully!");
+    try {
+      // Prepare data for backend
+      const issueData = {
+        title: formData.title.trim(),
+        description: formData.description.trim(),
+        imageUrl: formData.image ? formData.image.name : "", // For now, just store filename
+        location: {
+          lat: formData.location.latitude,
+          lng: formData.location.longitude,
+        },
+      };
+
+      // Send data to backend
+      const response = await fetch("http://localhost:3001/api/issues", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(issueData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        console.log("Issue created:", result);
+        alert("Issue submitted successfully!");
+
+        // Reset form
+        setFormData({
+          title: "",
+          description: "",
+          image: null,
+          location: {
+            latitude: null,
+            longitude: null,
+          },
+        });
+
+        // Reset file input
+        const fileInput = document.getElementById("image");
+        if (fileInput) fileInput.value = "";
+      } else {
+        const errorData = await response.json();
+        console.error("Error submitting issue:", errorData);
+        alert(
+          `Error submitting issue: ${errorData.message || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      console.error("Network error:", error);
+      alert("Network error. Please check if the backend server is running.");
+    }
   };
 
   return (

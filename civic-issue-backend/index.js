@@ -3,6 +3,9 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
 
+// Import routes
+const issueRoutes = require("./routes/issueRoutes");
+
 // Load environment variables
 dotenv.config();
 
@@ -18,7 +21,7 @@ app.use(express.json());
 const connectDB = async () => {
   try {
     const mongoURI =
-      process.env.MONGODB_URI || "mongodb://localhost:27017/civic-issues";
+      process.env.MONGO_URI || "mongodb://localhost:27017/civic-issues";
     await mongoose.connect(mongoURI);
     console.log("MongoDB connected successfully");
   } catch (error) {
@@ -32,8 +35,11 @@ connectDB();
 
 // Routes
 app.get("/", (req, res) => {
-  res.json({ message: "API is running" });
+  res.send("API running");
 });
+
+// API Routes
+app.use("/api/issues", issueRoutes);
 
 // Start server
 app.listen(PORT, () => {

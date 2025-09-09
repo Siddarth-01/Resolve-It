@@ -1,76 +1,31 @@
 import React, { useState, useEffect } from "react";
 
-// Dummy data - hardcoded list of issues
-const dummyIssues = [
-  {
-    id: 1,
-    title: "Broken streetlight on Main Street",
-    category: "Infrastructure",
-    status: "Pending",
-    date: "2025-09-08",
-  },
-  {
-    id: 2,
-    title: "Pothole near City Park entrance",
-    category: "Roads",
-    status: "In Progress",
-    date: "2025-09-07",
-  },
-  {
-    id: 3,
-    title: "Overflowing garbage bin at Bus Stop #12",
-    category: "Sanitation",
-    status: "Resolved",
-    date: "2025-09-05",
-  },
-  {
-    id: 4,
-    title: "Graffiti on community center wall",
-    category: "Vandalism",
-    status: "Pending",
-    date: "2025-09-06",
-  },
-  {
-    id: 5,
-    title: "Damaged traffic signal at Oak & Pine intersection",
-    category: "Traffic",
-    status: "In Progress",
-    date: "2025-09-04",
-  },
-  {
-    id: 6,
-    title: "Broken playground equipment - swing set",
-    category: "Parks & Recreation",
-    status: "Resolved",
-    date: "2025-09-03",
-  },
-  {
-    id: 7,
-    title: "Water leak from fire hydrant",
-    category: "Water & Utilities",
-    status: "Pending",
-    date: "2025-09-09",
-  },
-  {
-    id: 8,
-    title: "Missing stop sign at residential intersection",
-    category: "Traffic",
-    status: "In Progress",
-    date: "2025-09-02",
-  },
-];
-
 const MyIssues = () => {
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Simulate fetching data
+  // Fetch issues from backend
   useEffect(() => {
-    const fetchIssues = () => {
-      setTimeout(() => {
-        setIssues(dummyIssues);
+    const fetchIssues = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        const response = await fetch("http://localhost:3001/api/issues");
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        setIssues(data);
+      } catch (err) {
+        console.error("Error fetching issues:", err);
+        setError(err.message);
+      } finally {
         setLoading(false);
-      }, 1000); // Simulate loading time
+      }
     };
 
     fetchIssues();
@@ -92,15 +47,65 @@ const MyIssues = () => {
     }
   };
 
-  // Function to format date
+  // Function to format date into human-readable format
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
+
+    // Check if date is valid
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
+
+    // Format: 09 Sep 2025, 2:15 PM
+    const formattedDate = date.toLocaleDateString("en-GB", {
+      day: "2-digit",
       month: "short",
-      day: "numeric",
+      year: "numeric",
     });
+
+    const formattedTime = date.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+
+    return `${formattedDate}, ${formattedTime}`;
   };
+
+  // Error state
+  if (error) {
+    return (
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <div className="flex justify-center items-center h-64">
+            <div className="flex flex-col items-center">
+              <svg
+                className="h-12 w-12 text-red-600 mb-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.464 0L4.35 16.5c-.77.833.192 2.5 1.732 2.5z"
+                />
+              </svg>
+              <p className="text-red-600 font-medium">Error loading issues</p>
+              <p className="text-gray-600 text-sm mt-1">{error}</p>
+              <button
+                onClick={() => window.location.reload()}
+                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              >
+                Try Again
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -128,7 +133,7 @@ const MyIssues = () => {
                   d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                 ></path>
               </svg>
-              <p className="text-gray-600">Loading your issues...</p>
+              <p className="text-gray-600">Loading issues...</p>
             </div>
           </div>
         </div>
@@ -141,11 +146,9 @@ const MyIssues = () => {
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">
-            My Reported Issues
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800">All Civic Issues</h2>
           <p className="text-gray-600 mt-1">
-            Track the status of your civic issue reports
+            View all reported civic issues and their current status
           </p>
         </div>
 
@@ -178,7 +181,7 @@ const MyIssues = () => {
             <tbody className="bg-white divide-y divide-gray-200">
               {issues.map((issue) => (
                 <tr
-                  key={issue.id}
+                  key={issue._id}
                   className="hover:bg-gray-50 transition-colors"
                 >
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -188,7 +191,7 @@ const MyIssues = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-700">
-                      {issue.category}
+                      {issue.category || "Uncategorized"}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -197,7 +200,7 @@ const MyIssues = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
-                    {formatDate(issue.date)}
+                    {formatDate(issue.createdAt)}
                   </td>
                 </tr>
               ))}
@@ -222,10 +225,10 @@ const MyIssues = () => {
               />
             </svg>
             <h3 className="mt-2 text-sm font-medium text-gray-900">
-              No issues reported
+              No issues reported yet
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Get started by reporting your first civic issue.
+              Be the first to report a civic issue in your community.
             </p>
           </div>
         )}
