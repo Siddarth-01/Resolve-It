@@ -18,13 +18,13 @@ const NotFound = () => {
         <div className="space-y-4">
           <Link
             to="/"
-            className="inline-block bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700 transition-colors font-medium"
+            className="inline-block bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow font-medium transition-colors"
           >
             Report New Issue
           </Link>
           <Link
             to="/my-issues"
-            className="inline-block ml-4 bg-gray-200 text-gray-700 px-6 py-3 rounded-md hover:bg-gray-300 transition-colors font-medium"
+            className="inline-block ml-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow font-medium transition-colors"
           >
             View My Issues
           </Link>

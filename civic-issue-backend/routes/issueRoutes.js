@@ -53,6 +53,38 @@ router.get("/", async (req, res) => {
   }
 });
 
+// GET /api/issues/stats/:userId - Get issue statistics for a specific user
+router.get("/stats/:userId", async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Count total issues for the user
+    const total = await Issue.countDocuments({ userId });
+
+    // Count issues by status
+    const pending = await Issue.countDocuments({ userId, status: "Pending" });
+    const inProgress = await Issue.countDocuments({
+      userId,
+      status: "In Progress",
+    });
+    const resolved = await Issue.countDocuments({ userId, status: "Resolved" });
+
+    res.json({
+      total,
+      pending,
+      inProgress,
+      resolved,
+    });
+  } catch (error) {
+    res
+      .status(500)
+      .json({
+        message: "Error fetching issue statistics",
+        error: error.message,
+      });
+  }
+});
+
 // GET /api/issues/:id - Get a single issue by ID
 router.get("/:id", async (req, res) => {
   try {

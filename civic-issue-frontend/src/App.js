@@ -9,6 +9,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import StatusTrackerDemo from "./components/StatusTrackerDemo";
 import ModalDemo from "./components/ModalDemo";
 import MapDemo from "./components/MapDemo";
+import Profile from "./components/Profile";
 
 function App() {
   return (
@@ -25,6 +26,14 @@ function App() {
             <Route path="/demo" element={<StatusTrackerDemo />} />
             <Route path="/modal-demo" element={<ModalDemo />} />
             <Route path="/map-demo" element={<MapDemo />} />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/my-issues"
               element={

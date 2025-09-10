@@ -44,7 +44,7 @@ const Modal = ({ isOpen, onClose, children, className = "" }) => {
         <div className="absolute top-4 right-4 z-10">
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-lg hover:bg-gray-100"
             aria-label="Close modal"
           >
             <svg

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import StatusTracker from "./StatusTracker";
 import IssueDetailModal from "./IssueDetailModal";
+import toast from "react-hot-toast";
 
 const MyIssues = () => {
   const { currentUser } = useAuth();
@@ -39,6 +40,7 @@ const MyIssues = () => {
         setIssues(data);
       } catch (err) {
         console.error("Error fetching issues:", err);
+        toast.error("Failed to load issues");
         setError(err.message);
       } finally {
         setLoading(false);
@@ -125,7 +127,7 @@ const MyIssues = () => {
               <p className="text-gray-600 text-sm mt-1">{error}</p>
               <button
                 onClick={() => window.location.reload()}
-                className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                className="mt-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
               >
                 Try Again
               </button>
@@ -243,7 +245,7 @@ const MyIssues = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => handleViewIssue(issue)}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                      className="inline-flex items-center bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow text-sm font-medium transition-colors"
                     >
                       <svg
                         className="w-4 h-4 mr-1"

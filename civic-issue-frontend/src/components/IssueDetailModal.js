@@ -183,7 +183,7 @@ const IssueDetailModal = ({ issue, isOpen, onClose }) => {
         <div className="flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
           >
             Close
           </button>

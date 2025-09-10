@@ -2,6 +2,8 @@
   "css.validate": false,
   "less.validate": false,
   "scss.validate": false,
+  "css.lint.unknownAtRules": "ignore",
+  "css.customData": [".vscode/css_custom_data.json"],
   "files.associations": {
     "*.css": "tailwindcss"
   },
@@ -10,6 +12,11 @@
     "javascript": "javascript",
     "javascriptreact": "javascript"
   },
+  "tailwindCSS.experimental.classRegex": [
+    "class:\\s*?[\"'`]([^\"'`]*).*?[\"'`]",
+    "(?:enter|leave)(?:From|To)?=\\s*(?:\"|')([^\"']*)(?:\"|')",
+    "(?:enter|leave)(?:From|To)?=\\s*(?:\"|'|{`)([^\"'`]*)(?:\"|'|`})"
+  ],
   "editor.quickSuggestions": {
     "strings": true
   }

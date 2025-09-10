@@ -21,7 +21,7 @@ const ModalDemo = () => {
             </h3>
             <button
               onClick={() => setIsBasicModalOpen(true)}
-              className="w-full px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Open Basic Modal
             </button>
@@ -34,7 +34,7 @@ const ModalDemo = () => {
             </h3>
             <button
               onClick={() => setIsFormModalOpen(true)}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Open Form Modal
             </button>
@@ -47,7 +47,7 @@ const ModalDemo = () => {
             </h3>
             <button
               onClick={() => setIsConfirmModalOpen(true)}
-              className="w-full px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Open Confirm Modal
             </button>
@@ -87,7 +87,7 @@ const ModalDemo = () => {
         <div className="flex justify-end">
           <button
             onClick={() => setIsBasicModalOpen(false)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
           >
             Got it!
           </button>
@@ -108,7 +108,7 @@ const ModalDemo = () => {
             </label>
             <input
               type="text"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
               placeholder="Enter your name"
             />
           </div>
@@ -118,7 +118,7 @@ const ModalDemo = () => {
             </label>
             <input
               type="email"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
               placeholder="Enter your email"
             />
           </div>
@@ -128,7 +128,7 @@ const ModalDemo = () => {
             </label>
             <textarea
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
               placeholder="Enter your message"
             />
           </div>
@@ -136,13 +136,13 @@ const ModalDemo = () => {
             <button
               type="button"
               onClick={() => setIsFormModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Submit
             </button>
@@ -182,7 +182,7 @@ const ModalDemo = () => {
           <div className="flex justify-center space-x-3">
             <button
               onClick={() => setIsConfirmModalOpen(false)}
-              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Cancel
             </button>
@@ -191,7 +191,7 @@ const ModalDemo = () => {
                 alert("Item deleted!");
                 setIsConfirmModalOpen(false);
               }}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
             >
               Delete
             </button>

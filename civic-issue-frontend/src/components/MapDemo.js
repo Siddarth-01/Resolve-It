@@ -58,7 +58,7 @@ const MapDemo = () => {
                 <button
                   key={location.name}
                   onClick={() => handleLocationChange(location)}
-                  className="px-3 py-2 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                  className="bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow text-sm transition-colors"
                 >
                   {location.name}
                 </button>
@@ -81,7 +81,7 @@ const MapDemo = () => {
                   name="lat"
                   step="any"
                   defaultValue={coordinates.lat}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
                   placeholder="e.g., 40.7128"
                 />
               </div>
@@ -94,13 +94,13 @@ const MapDemo = () => {
                   name="lng"
                   step="any"
                   defaultValue={coordinates.lng}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400"
                   placeholder="e.g., -74.0060"
                 />
               </div>
               <button
                 type="submit"
-                className="w-full px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors"
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow transition-colors"
               >
                 Update Map
               </button>
