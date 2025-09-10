@@ -46,6 +46,11 @@ const issueSchema = new mongoose.Schema({
     },
     default: "Pending",
   },
+  adminNote: {
+    type: String,
+    trim: true,
+    maxlength: [500, "Admin note cannot be more than 500 characters"],
+  },
   createdAt: {
     type: Date,
     default: Date.now,

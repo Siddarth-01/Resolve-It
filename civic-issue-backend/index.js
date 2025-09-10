@@ -10,6 +10,7 @@ dotenv.config();
 
 // Import routes
 const issueRoutes = require("./routes/issueRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
 // Initialize Firebase service (this will setup Firebase on startup)
 require("./utils/firebaseService");
@@ -48,6 +49,7 @@ app.get("/", (req, res) => {
 
 // API Routes
 app.use("/api/issues", issueRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Start server
 app.listen(PORT, () => {

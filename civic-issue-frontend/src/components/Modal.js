@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 
-const Modal = ({ isOpen, onClose, children, className = "" }) => {
+const Modal = ({ isOpen, onClose, children, className = "", size = "md" }) => {
   // Handle ESC key press to close modal
   useEffect(() => {
     const handleEscapeKey = (event) => {
@@ -31,13 +31,21 @@ const Modal = ({ isOpen, onClose, children, className = "" }) => {
     }
   };
 
+  // Define size classes
+  const sizeClasses = {
+    sm: "max-w-md",
+    md: "max-w-2xl",
+    lg: "max-w-4xl",
+    xl: "max-w-6xl",
+  };
+
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
       onClick={handleBackdropClick}
     >
       <div
-        className={`bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto ${className}`}
+        className={`bg-white rounded-lg shadow-xl ${sizeClasses[size]} w-full max-h-[90vh] overflow-y-auto ${className}`}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close button */}

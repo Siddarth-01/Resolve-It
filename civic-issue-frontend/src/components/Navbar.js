@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { isAdminEmail } from "../config/adminEmails";
 
 const Navbar = () => {
   const location = useLocation();
@@ -10,6 +11,8 @@ const Navbar = () => {
   const isActive = (path) => {
     return location.pathname === path;
   };
+
+  const isUserAdmin = currentUser && isAdminEmail(currentUser.email);
 
   const handleLogout = async () => {
     try {
@@ -26,10 +29,12 @@ const Navbar = () => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
-              Civic Issue Reporter
+              {isUserAdmin ? "Admin Dashboard" : "Civic Issue Reporter"}
             </h1>
             <p className="text-gray-600 mt-1">
-              Report and track civic issues in your community
+              {isUserAdmin
+                ? "Manage and resolve civic issues in your community"
+                : "Report and track civic issues in your community"}
             </p>
           </div>
 
@@ -51,8 +56,26 @@ const Navbar = () => {
                     }}
                   />
                   <div className="text-left">
-                    <p className="font-medium text-gray-900">
+                    <p className="font-medium text-gray-900 flex items-center">
                       {currentUser.displayName || "User"}
+                      {isUserAdmin && (
+                        <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-800">
+                          <svg
+                            className="w-3 h-3 mr-1"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                            />
+                          </svg>
+                          Admin
+                        </span>
+                      )}
                     </p>
                     <p className="text-sm text-gray-500">{currentUser.email}</p>
                   </div>
@@ -146,26 +169,62 @@ const Navbar = () => {
 
         {/* Navigation Links */}
         <nav className="mt-4 flex space-x-4">
-          <Link
-            to="/"
-            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
-              isActive("/")
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            Report Issue
-          </Link>
-          <Link
-            to="/my-issues"
-            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
-              isActive("/my-issues")
-                ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
-            }`}
-          >
-            My Issues
-          </Link>
+          {/* Show regular citizen navigation if not an admin */}
+          {!isUserAdmin && (
+            <>
+              <Link
+                to="/"
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                  isActive("/")
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                Report Issue
+              </Link>
+              <Link
+                to="/my-issues"
+                className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                  isActive("/my-issues")
+                    ? "bg-blue-600 text-white"
+                    : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+                }`}
+              >
+                My Issues
+              </Link>
+            </>
+          )}
+
+          {/* Show Admin Dashboard link only for admin users */}
+          {isUserAdmin && (
+            <Link
+              to="/admin"
+              className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+                isActive("/admin")
+                  ? "bg-red-600 text-white"
+                  : "bg-red-200 text-red-700 hover:bg-red-300"
+              }`}
+            >
+              <span className="flex items-center">
+                <svg
+                  className="w-4 h-4 mr-1"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
+                  />
+                </svg>
+                Admin Dashboard
+              </span>
+            </Link>
+          )}
+
+          {/* Profile link is available for all users */}
           <Link
             to="/profile"
             className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${

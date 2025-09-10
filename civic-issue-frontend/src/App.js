@@ -6,7 +6,10 @@ import NotFound from "./components/NotFound";
 import Navbar from "./components/Navbar";
 import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminProtectedRoute from "./components/AdminProtectedRoute";
+import CitizenProtectedRoute from "./components/CitizenProtectedRoute";
 import Profile from "./components/Profile";
+import AdminDashboard from "./components/AdminDashboard";
 
 function App() {
   return (
@@ -18,7 +21,14 @@ function App() {
         {/* Main Content */}
         <main className="py-8">
           <Routes>
-            <Route path="/" element={<IssueForm />} />
+            <Route
+              path="/"
+              element={
+                <CitizenProtectedRoute>
+                  <IssueForm />
+                </CitizenProtectedRoute>
+              }
+            />
             <Route path="/login" element={<Login />} />
             <Route
               path="/profile"
@@ -31,9 +41,17 @@ function App() {
             <Route
               path="/my-issues"
               element={
-                <ProtectedRoute>
+                <CitizenProtectedRoute>
                   <MyIssues />
-                </ProtectedRoute>
+                </CitizenProtectedRoute>
+              }
+            />
+            <Route
+              path="/admin"
+              element={
+                <AdminProtectedRoute>
+                  <AdminDashboard />
+                </AdminProtectedRoute>
               }
             />
             <Route path="*" element={<NotFound />} />
