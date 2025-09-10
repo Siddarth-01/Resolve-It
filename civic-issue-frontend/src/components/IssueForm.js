@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useAuth } from "../contexts/AuthContext";
+import toast from "react-hot-toast";
+import LocationPicker from "./LocationPicker";
 
 const IssueForm = () => {
   const { currentUser } = useAuth();
@@ -13,7 +15,45 @@ const IssueForm = () => {
     },
   });
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
+  const [locationMode, setLocationMode] = useState("current"); // "current" or "manual"
+
+  // Auto-detect location when component mounts if current location mode is selected
+  useEffect(() => {
+    if (
+      locationMode === "current" &&
+      !formData.location.latitude &&
+      !formData.location.longitude
+    ) {
+      // Try to get current location automatically on component mount
+      if (navigator.geolocation) {
+        setIsLoadingLocation(true);
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            setFormData((prev) => ({
+              ...prev,
+              location: {
+                latitude: position.coords.latitude,
+                longitude: position.coords.longitude,
+              },
+            }));
+            setIsLoadingLocation(false);
+          },
+          (error) => {
+            console.warn("Could not auto-detect location:", error);
+            setIsLoadingLocation(false);
+            // Don't show error toast here as it's automatic - user can manually trigger if needed
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 60000,
+          }
+        );
+      }
+    }
+  }, [locationMode]);
 
   // Cleanup preview URL when component unmounts
   useEffect(() => {
@@ -37,20 +77,30 @@ const IssueForm = () => {
     if (file) {
       // Check if file is jpg or png
       const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
-      if (allowedTypes.includes(file.type)) {
-        setFormData((prev) => ({
-          ...prev,
-          image: file,
-        }));
-
-        // Create preview URL
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
-      } else {
-        alert("Please select only JPG or PNG files");
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Please select only JPG or PNG files");
         e.target.value = "";
         setImagePreview(null);
+        return;
       }
+
+      // Check file size (5MB = 5 * 1024 * 1024 bytes)
+      const maxSize = 5 * 1024 * 1024;
+      if (file.size > maxSize) {
+        toast.error("Image size must be under 5MB");
+        e.target.value = "";
+        setImagePreview(null);
+        return;
+      }
+
+      setFormData((prev) => ({
+        ...prev,
+        image: file,
+      }));
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
     } else {
       // File was cleared
       setFormData((prev) => ({
@@ -61,11 +111,63 @@ const IssueForm = () => {
     }
   };
 
+  const handleLocationModeChange = (mode) => {
+    setLocationMode(mode);
+    // Reset location when switching modes
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        latitude: null,
+        longitude: null,
+      },
+    }));
+
+    // If switching to manual mode, try to get current location as default
+    if (mode === "manual" && navigator.geolocation) {
+      setIsLoadingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setFormData((prev) => ({
+            ...prev,
+            location: {
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            },
+          }));
+          setIsLoadingLocation(false);
+        },
+        (error) => {
+          console.warn(
+            "Could not auto-detect location for manual mode:",
+            error
+          );
+          setIsLoadingLocation(false);
+          // Don't show error toast - user can manually set location
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 5000,
+          maximumAge: 60000,
+        }
+      );
+    }
+  };
+
+  const handleManualLocationChange = (latitude, longitude) => {
+    setFormData((prev) => ({
+      ...prev,
+      location: {
+        latitude,
+        longitude,
+      },
+    }));
+  };
+
   const fetchLocation = () => {
     setIsLoadingLocation(true);
 
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by this browser");
+      toast.error("Geolocation is not supported by this browser");
       setIsLoadingLocation(false);
       return;
     }
@@ -83,7 +185,7 @@ const IssueForm = () => {
       },
       (error) => {
         console.error("Error getting location:", error);
-        alert("Unable to fetch location. Please try again.");
+        toast.error("Unable to fetch location. Please try again.");
         setIsLoadingLocation(false);
       },
       {
@@ -99,17 +201,42 @@ const IssueForm = () => {
 
     // Validation
     if (!currentUser) {
-      alert("You must be logged in to submit an issue");
+      toast.error("You must be logged in to submit an issue");
       return;
     }
+
     if (!formData.title.trim()) {
-      alert("Please enter an issue title");
+      toast.error("Title is required");
       return;
     }
+
     if (!formData.description.trim()) {
-      alert("Please enter an issue description");
+      toast.error("Description is required");
       return;
     }
+
+    // Location validation
+    if (!formData.location.latitude || !formData.location.longitude) {
+      toast.error("Please select a location");
+      return;
+    }
+
+    // Additional image validation (in case file was modified after initial check)
+    if (formData.image) {
+      const allowedTypes = ["image/jpeg", "image/jpg", "image/png"];
+      if (!allowedTypes.includes(formData.image.type)) {
+        toast.error("Image must be JPG or PNG format");
+        return;
+      }
+
+      const maxSize = 5 * 1024 * 1024; // 5MB
+      if (formData.image.size > maxSize) {
+        toast.error("Image size must be under 5MB");
+        return;
+      }
+    }
+
+    setIsSubmitting(true);
 
     try {
       // Create FormData for file upload
@@ -143,7 +270,7 @@ const IssueForm = () => {
       if (response.ok) {
         const result = await response.json();
         console.log("Issue created:", result);
-        alert("Issue submitted successfully!");
+        toast.success("Issue submitted successfully!");
 
         // Reset form
         setFormData({
@@ -166,13 +293,17 @@ const IssueForm = () => {
       } else {
         const errorData = await response.json();
         console.error("Error submitting issue:", errorData);
-        alert(
+        toast.error(
           `Error submitting issue: ${errorData.message || "Unknown error"}`
         );
       }
     } catch (error) {
       console.error("Network error:", error);
-      alert("Network error. Please check if the backend server is running.");
+      toast.error(
+        "Network error. Please check if the backend server is running."
+      );
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -198,7 +329,7 @@ const IssueForm = () => {
               name="title"
               value={formData.title}
               onChange={handleInputChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none transition-colors"
               placeholder="Enter a brief title for the issue"
               required
             />
@@ -218,7 +349,7 @@ const IssueForm = () => {
               value={formData.description}
               onChange={handleInputChange}
               rows={4}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors resize-vertical"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none transition-colors resize-vertical"
               placeholder="Provide detailed description of the issue"
               required
             />
@@ -230,7 +361,7 @@ const IssueForm = () => {
               htmlFor="image"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Upload Image (JPG or PNG only)
+              Upload Image (Optional - JPG/PNG, max 5MB)
             </label>
             <input
               type="file"
@@ -238,7 +369,7 @@ const IssueForm = () => {
               name="image"
               accept=".jpg,.jpeg,.png"
               onChange={handleFileChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none transition-colors file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             {formData.image && (
               <p className="mt-2 text-sm text-green-600">
@@ -261,54 +392,156 @@ const IssueForm = () => {
             )}
           </div>
 
-          {/* Location Button */}
+          {/* Location Mode Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Location
+            <label className="block text-sm font-medium text-gray-700 mb-4">
+              Location Selection
             </label>
-            <button
-              type="button"
-              onClick={fetchLocation}
-              disabled={isLoadingLocation}
-              className="w-full sm:w-auto px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-2 outline-none transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-              {isLoadingLocation ? (
-                <span className="flex items-center">
-                  <svg
-                    className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                  >
-                    <circle
-                      className="opacity-25"
-                      cx="12"
-                      cy="12"
-                      r="10"
-                      stroke="currentColor"
-                      strokeWidth="4"
-                    ></circle>
-                    <path
-                      className="opacity-75"
-                      fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                    ></path>
-                  </svg>
-                  Getting Location...
-                </span>
-              ) : (
-                "📍 Get Current Location"
-              )}
-            </button>
+
+            {/* Mode Toggle Buttons */}
+            <div className="flex flex-col sm:flex-row gap-2 mb-4">
+              <button
+                type="button"
+                onClick={() => handleLocationModeChange("current")}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
+                  locationMode === "current"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <span className="text-lg">📍</span>
+                  <span className="font-medium">Get Current Location</span>
+                </div>
+                <div className="text-xs mt-1 opacity-80">
+                  Auto-detect your location
+                </div>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleLocationModeChange("manual")}
+                className={`flex-1 px-4 py-3 rounded-lg border-2 transition-all duration-200 ${
+                  locationMode === "manual"
+                    ? "border-blue-500 bg-blue-50 text-blue-700"
+                    : "border-gray-300 bg-white text-gray-700 hover:border-gray-400"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <span className="text-lg">🗺️</span>
+                  <span className="font-medium">Set Location Manually</span>
+                </div>
+                <div className="text-xs mt-1 opacity-80">
+                  Choose location on map
+                </div>
+              </button>
+            </div>
+
+            {/* Current Location Mode */}
+            {locationMode === "current" && (
+              <div>
+                <button
+                  type="button"
+                  onClick={fetchLocation}
+                  disabled={isLoadingLocation}
+                  className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoadingLocation ? (
+                    <span className="flex items-center justify-center">
+                      <svg
+                        className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                      >
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                        ></circle>
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                        ></path>
+                      </svg>
+                      Getting Location...
+                    </span>
+                  ) : (
+                    "📍 Get Current Location"
+                  )}
+                </button>
+              </div>
+            )}
+
+            {/* Manual Location Mode */}
+            {locationMode === "manual" && (
+              <div>
+                <div className="mb-3">
+                  <p className="text-sm text-gray-600 mb-2">
+                    Click on the map or drag the marker to set the issue
+                    location:
+                  </p>
+                  {isLoadingLocation ? (
+                    <div className="flex items-center justify-center h-64 rounded-lg border border-gray-200 bg-gray-50">
+                      <div className="text-center">
+                        <svg
+                          className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2"
+                          xmlns="http://www.w3.org/2000/svg"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          ></circle>
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          ></path>
+                        </svg>
+                        <p className="text-sm text-gray-600">
+                          Detecting your location...
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <LocationPicker
+                      lat={formData.location.latitude}
+                      lng={formData.location.longitude}
+                      onChange={handleManualLocationChange}
+                    />
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Location Display */}
             {formData.location.latitude && formData.location.longitude && (
-              <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-md">
-                <p className="text-sm text-green-800">
-                  <strong>Location captured:</strong>
-                  <br />
-                  Latitude: {formData.location.latitude.toFixed(6)}
-                  <br />
-                  Longitude: {formData.location.longitude.toFixed(6)}
-                </p>
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                {locationMode === "current" ? (
+                  <p className="text-sm text-green-800">
+                    <strong>Location detected:</strong>{" "}
+                    {formData.location.latitude.toFixed(6)},{" "}
+                    {formData.location.longitude.toFixed(6)}
+                  </p>
+                ) : (
+                  <p className="text-sm text-green-800">
+                    <strong>Location set:</strong>
+                    <br />
+                    Latitude: {formData.location.latitude.toFixed(6)}
+                    <br />
+                    Longitude: {formData.location.longitude.toFixed(6)}
+                  </p>
+                )}
               </div>
             )}
           </div>
@@ -317,9 +550,17 @@ const IssueForm = () => {
           <div className="pt-4">
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-3 px-6 rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 outline-none transition-colors font-medium text-lg"
+              disabled={isSubmitting}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white rounded-lg px-4 py-2 shadow font-medium text-lg disabled:bg-gray-400 disabled:cursor-not-allowed transition-colors"
             >
-              Submit Issue Report
+              {isSubmitting ? (
+                <span className="flex items-center justify-center">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  Submitting...
+                </span>
+              ) : (
+                "Submit Issue Report"
+              )}
             </button>
           </div>
         </form>
