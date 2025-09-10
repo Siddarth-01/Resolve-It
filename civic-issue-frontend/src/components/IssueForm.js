@@ -478,72 +478,78 @@ const IssueForm = () => {
             )}
 
             {/* Manual Location Mode */}
-            {locationMode === "manual" && (
+            {locationMode === "manual" && !isLoadingLocation && (
               <div>
-                <div className="mb-3">
-                  <p className="text-sm text-gray-600 mb-2">
-                    Click on the map or drag the marker to set the issue
-                    location:
+                <p className="text-sm text-gray-600 mb-2">
+                  Your location will appear on the map below once detected.
+                </p>
+              </div>
+            )}
+
+            {/* Loading state for manual mode */}
+            {locationMode === "manual" && isLoadingLocation && (
+              <div className="flex items-center justify-center h-48 rounded-lg border border-gray-200 bg-gray-50">
+                <div className="text-center">
+                  <svg
+                    className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  <p className="text-sm text-gray-600">
+                    Detecting your location...
                   </p>
-                  {isLoadingLocation ? (
-                    <div className="flex items-center justify-center h-64 rounded-lg border border-gray-200 bg-gray-50">
-                      <div className="text-center">
-                        <svg
-                          className="animate-spin h-8 w-8 text-blue-600 mx-auto mb-2"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        <p className="text-sm text-gray-600">
-                          Detecting your location...
-                        </p>
-                      </div>
-                    </div>
-                  ) : (
-                    <LocationPicker
-                      lat={formData.location.latitude}
-                      lng={formData.location.longitude}
-                      onChange={handleManualLocationChange}
-                    />
-                  )}
                 </div>
               </div>
             )}
 
-            {/* Location Display */}
-            {formData.location.latitude && formData.location.longitude && (
-              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
-                {locationMode === "current" ? (
-                  <p className="text-sm text-green-800">
-                    <strong>Location detected:</strong>{" "}
+            {/* Location Preview - Always show after location is selected */}
+            {formData.location.latitude &&
+              formData.location.longitude &&
+              !isLoadingLocation && (
+                <div className="mt-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    {locationMode === "manual"
+                      ? "Adjust Location on Map"
+                      : "Location Preview"}
+                  </label>
+                  {locationMode === "manual" && (
+                    <p className="text-sm text-gray-600 mb-2">
+                      Click on the map or drag the marker to adjust the
+                      location:
+                    </p>
+                  )}
+                  <LocationPicker
+                    lat={formData.location.latitude}
+                    lng={formData.location.longitude}
+                    mode={locationMode === "manual" ? "manual" : "auto"}
+                    onChange={
+                      locationMode === "manual"
+                        ? handleManualLocationChange
+                        : undefined
+                    }
+                  />
+                  <div className="mt-2 p-2 bg-gray-50 rounded text-xs text-gray-600">
+                    <strong>Coordinates:</strong>{" "}
                     {formData.location.latitude.toFixed(6)},{" "}
                     {formData.location.longitude.toFixed(6)}
-                  </p>
-                ) : (
-                  <p className="text-sm text-green-800">
-                    <strong>Location set:</strong>
-                    <br />
-                    Latitude: {formData.location.latitude.toFixed(6)}
-                    <br />
-                    Longitude: {formData.location.longitude.toFixed(6)}
-                  </p>
-                )}
-              </div>
-            )}
+                  </div>
+                </div>
+              )}
           </div>
 
           {/* Submit Button */}

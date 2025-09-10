@@ -38,9 +38,7 @@ describe("LocationPicker", () => {
 
   test("renders without crashing", () => {
     render(<LocationPicker onChange={mockOnChange} />);
-    expect(
-      screen.getByText("💡 Click on the map or drag the marker to set location")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Location not available")).toBeInTheDocument();
   });
 
   test("renders with custom className", () => {
@@ -53,9 +51,7 @@ describe("LocationPicker", () => {
   test("renders with default coordinates when none provided", () => {
     render(<LocationPicker onChange={mockOnChange} />);
     // Component should render without error even with no coordinates
-    expect(
-      screen.getByText("💡 Click on the map or drag the marker to set location")
-    ).toBeInTheDocument();
+    expect(screen.getByText("Location not available")).toBeInTheDocument();
   });
 
   test("renders with provided coordinates", () => {
@@ -63,12 +59,59 @@ describe("LocationPicker", () => {
       <LocationPicker lat={40.7128} lng={-74.006} onChange={mockOnChange} />
     );
     expect(
-      screen.getByText("💡 Click on the map or drag the marker to set location")
+      screen.getByText("Drag the marker to adjust location")
     ).toBeInTheDocument();
   });
 
-  test("has correct height style", () => {
+  test("shows 'Location not available' when no coordinates provided", () => {
+    render(<LocationPicker onChange={mockOnChange} />);
+    expect(screen.getByText("Location not available")).toBeInTheDocument();
+  });
+
+  test("shows manual mode helper text by default", () => {
+    render(
+      <LocationPicker lat={40.7128} lng={-74.006} onChange={mockOnChange} />
+    );
+    expect(
+      screen.getByText("Drag the marker to adjust location")
+    ).toBeInTheDocument();
+  });
+
+  test("shows auto mode helper text when mode is auto", () => {
+    render(
+      <LocationPicker
+        lat={40.7128}
+        lng={-74.006}
+        onChange={mockOnChange}
+        mode="auto"
+      />
+    );
+    expect(
+      screen.getByText("This is your detected location")
+    ).toBeInTheDocument();
+  });
+
+  test("shows manual mode helper text when mode is manual", () => {
+    render(
+      <LocationPicker
+        lat={40.7128}
+        lng={-74.006}
+        onChange={mockOnChange}
+        mode="manual"
+      />
+    );
+    expect(
+      screen.getByText("Drag the marker to adjust location")
+    ).toBeInTheDocument();
+  });
+
+  test("has correct height class (h-48)", () => {
     const { container } = render(<LocationPicker onChange={mockOnChange} />);
-    expect(container.firstChild).toHaveStyle("height: 300px");
+    expect(container.firstChild).toHaveClass("h-48");
+  });
+
+  test("has shadow styling", () => {
+    const { container } = render(<LocationPicker onChange={mockOnChange} />);
+    expect(container.firstChild).toHaveClass("shadow");
   });
 });

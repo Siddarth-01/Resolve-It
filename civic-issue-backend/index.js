@@ -5,11 +5,14 @@ const dotenv = require("dotenv");
 const multer = require("multer");
 const path = require("path");
 
+// Load environment variables FIRST
+dotenv.config();
+
 // Import routes
 const issueRoutes = require("./routes/issueRoutes");
 
-// Load environment variables
-dotenv.config();
+// Initialize Firebase service (this will setup Firebase on startup)
+require("./utils/firebaseService");
 
 // Create Express app
 const app = express();

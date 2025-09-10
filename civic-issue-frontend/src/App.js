@@ -6,9 +6,6 @@ import NotFound from "./components/NotFound";
 import Navbar from "./components/Navbar";
 import Login from "./components/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
-import StatusTrackerDemo from "./components/StatusTrackerDemo";
-import ModalDemo from "./components/ModalDemo";
-import MapDemo from "./components/MapDemo";
 import Profile from "./components/Profile";
 
 function App() {
@@ -23,9 +20,6 @@ function App() {
           <Routes>
             <Route path="/" element={<IssueForm />} />
             <Route path="/login" element={<Login />} />
-            <Route path="/demo" element={<StatusTrackerDemo />} />
-            <Route path="/modal-demo" element={<ModalDemo />} />
-            <Route path="/map-demo" element={<MapDemo />} />
             <Route
               path="/profile"
               element={
