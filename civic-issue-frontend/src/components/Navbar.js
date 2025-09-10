@@ -146,6 +146,36 @@ const Navbar = () => {
           >
             My Issues
           </Link>
+          <Link
+            to="/demo"
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+              isActive("/demo")
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            Status Demo
+          </Link>
+          <Link
+            to="/modal-demo"
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+              isActive("/modal-demo")
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            Modal Demo
+          </Link>
+          <Link
+            to="/map-demo"
+            className={`px-4 py-2 rounded-md font-medium text-sm transition-colors ${
+              isActive("/map-demo")
+                ? "bg-blue-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
+            }`}
+          >
+            Map Demo
+          </Link>
         </nav>
       </div>
     </header>

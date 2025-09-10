@@ -1,9 +1,15 @@
 import React, { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import StatusTracker from "./StatusTracker";
+import IssueDetailModal from "./IssueDetailModal";
 
 const MyIssues = () => {
+  const { currentUser } = useAuth();
   const [issues, setIssues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [selectedIssue, setSelectedIssue] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Fetch issues from backend
   useEffect(() => {
@@ -12,13 +18,24 @@ const MyIssues = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch("http://localhost:3001/api/issues");
+        // Don't fetch if user is not logged in
+        if (!currentUser) {
+          setIssues([]);
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(
+          `http://localhost:3001/api/issues?userId=${currentUser.uid}`
+        );
 
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data = await response.json();
+
+        // No need to filter here anymore since backend does the filtering
         setIssues(data);
       } catch (err) {
         console.error("Error fetching issues:", err);
@@ -29,21 +46,21 @@ const MyIssues = () => {
     };
 
     fetchIssues();
-  }, []);
+  }, [currentUser]);
 
   // Function to get status badge styling
   const getStatusBadge = (status) => {
-    const baseClasses = "px-2 py-1 rounded-full text-xs font-medium";
+    const baseClasses = "rounded-full px-3 py-1 text-xs font-medium";
 
     switch (status) {
       case "Pending":
-        return `${baseClasses} bg-yellow-100 text-yellow-800`;
+        return `${baseClasses} bg-yellow-200 text-yellow-800`;
       case "In Progress":
-        return `${baseClasses} bg-blue-100 text-blue-800`;
+        return `${baseClasses} bg-blue-200 text-blue-800`;
       case "Resolved":
-        return `${baseClasses} bg-green-100 text-green-800`;
+        return `${baseClasses} bg-green-200 text-green-800`;
       default:
-        return `${baseClasses} bg-gray-100 text-gray-800`;
+        return `${baseClasses} bg-gray-200 text-gray-800`;
     }
   };
 
@@ -70,6 +87,18 @@ const MyIssues = () => {
     });
 
     return `${formattedDate}, ${formattedTime}`;
+  };
+
+  // Handle opening issue detail modal
+  const handleViewIssue = (issue) => {
+    setSelectedIssue(issue);
+    setIsModalOpen(true);
+  };
+
+  // Handle closing modal
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedIssue(null);
   };
 
   // Error state
@@ -146,16 +175,16 @@ const MyIssues = () => {
       <div className="bg-white rounded-lg shadow-lg overflow-hidden">
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">All Civic Issues</h2>
+          <h2 className="text-2xl font-bold text-gray-800">My Civic Issues</h2>
           <p className="text-gray-600 mt-1">
-            View all reported civic issues and their current status
+            View and track your reported civic issues and their current status
           </p>
         </div>
 
         {/* Issues Count */}
         <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
           <p className="text-sm text-gray-700">
-            Total Issues: <span className="font-semibold">{issues.length}</span>
+            My Issues: <span className="font-semibold">{issues.length}</span>
           </p>
         </div>
 
@@ -174,7 +203,13 @@ const MyIssues = () => {
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Progress
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Date Reported
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Actions
                 </th>
               </tr>
             </thead>
@@ -199,8 +234,38 @@ const MyIssues = () => {
                       {issue.status}
                     </span>
                   </td>
+                  <td className="px-6 py-4">
+                    <StatusTracker status={issue.status} />
+                  </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
                     {formatDate(issue.createdAt)}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <button
+                      onClick={() => handleViewIssue(issue)}
+                      className="inline-flex items-center px-3 py-1 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-colors"
+                    >
+                      <svg
+                        className="w-4 h-4 mr-1"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                        />
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                        />
+                      </svg>
+                      View
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -228,7 +293,7 @@ const MyIssues = () => {
               No issues reported yet
             </h3>
             <p className="mt-1 text-sm text-gray-500">
-              Be the first to report a civic issue in your community.
+              Start by reporting your first civic issue in your community.
             </p>
           </div>
         )}
@@ -247,7 +312,7 @@ const MyIssues = () => {
             </div>
             <div className="ml-3">
               <p className="text-sm font-medium text-yellow-800">
-                Pending Issues
+                My Pending Issues
               </p>
               <p className="text-xs text-yellow-600">Awaiting review</p>
             </div>
@@ -267,7 +332,9 @@ const MyIssues = () => {
               </div>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-blue-800">In Progress</p>
+              <p className="text-sm font-medium text-blue-800">
+                My In Progress
+              </p>
               <p className="text-xs text-blue-600">Being worked on</p>
             </div>
           </div>
@@ -283,12 +350,19 @@ const MyIssues = () => {
               </div>
             </div>
             <div className="ml-3">
-              <p className="text-sm font-medium text-green-800">Resolved</p>
+              <p className="text-sm font-medium text-green-800">My Resolved</p>
               <p className="text-xs text-green-600">Successfully completed</p>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Issue Detail Modal */}
+      <IssueDetailModal
+        issue={selectedIssue}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </div>
   );
 };

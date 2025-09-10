@@ -1,6 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuth } from "../contexts/AuthContext";
 
 const IssueForm = () => {
+  const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -11,6 +13,16 @@ const IssueForm = () => {
     },
   });
   const [isLoadingLocation, setIsLoadingLocation] = useState(false);
+  const [imagePreview, setImagePreview] = useState(null);
+
+  // Cleanup preview URL when component unmounts
+  useEffect(() => {
+    return () => {
+      if (imagePreview) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -30,10 +42,22 @@ const IssueForm = () => {
           ...prev,
           image: file,
         }));
+
+        // Create preview URL
+        const previewUrl = URL.createObjectURL(file);
+        setImagePreview(previewUrl);
       } else {
         alert("Please select only JPG or PNG files");
         e.target.value = "";
+        setImagePreview(null);
       }
+    } else {
+      // File was cleared
+      setFormData((prev) => ({
+        ...prev,
+        image: null,
+      }));
+      setImagePreview(null);
     }
   };
 
@@ -74,6 +98,10 @@ const IssueForm = () => {
     e.preventDefault();
 
     // Validation
+    if (!currentUser) {
+      alert("You must be logged in to submit an issue");
+      return;
+    }
     if (!formData.title.trim()) {
       alert("Please enter an issue title");
       return;
@@ -84,24 +112,32 @@ const IssueForm = () => {
     }
 
     try {
-      // Prepare data for backend
-      const issueData = {
-        title: formData.title.trim(),
-        description: formData.description.trim(),
-        imageUrl: formData.image ? formData.image.name : "", // For now, just store filename
-        location: {
-          lat: formData.location.latitude,
-          lng: formData.location.longitude,
-        },
-      };
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append("title", formData.title.trim());
+      formDataToSend.append("description", formData.description.trim());
+      formDataToSend.append("userId", currentUser.uid);
+
+      // Add image file if selected
+      if (formData.image) {
+        formDataToSend.append("image", formData.image);
+      }
+
+      // Add location as JSON string
+      if (formData.location.latitude && formData.location.longitude) {
+        formDataToSend.append(
+          "location",
+          JSON.stringify({
+            lat: formData.location.latitude,
+            lng: formData.location.longitude,
+          })
+        );
+      }
 
       // Send data to backend
       const response = await fetch("http://localhost:3001/api/issues", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(issueData),
+        body: formDataToSend, // Don't set Content-Type header - browser will set it automatically for FormData
       });
 
       if (response.ok) {
@@ -120,7 +156,11 @@ const IssueForm = () => {
           },
         });
 
-        // Reset file input
+        // Clean up preview URL and reset file input
+        if (imagePreview) {
+          URL.revokeObjectURL(imagePreview);
+          setImagePreview(null);
+        }
         const fileInput = document.getElementById("image");
         if (fileInput) fileInput.value = "";
       } else {
@@ -204,6 +244,20 @@ const IssueForm = () => {
               <p className="mt-2 text-sm text-green-600">
                 Selected: {formData.image.name}
               </p>
+            )}
+
+            {/* Image Preview */}
+            {imagePreview && (
+              <div className="mt-3">
+                <p className="text-sm font-medium text-gray-700 mb-2">
+                  Preview:
+                </p>
+                <img
+                  src={imagePreview}
+                  alt="Preview"
+                  className="h-40 w-auto rounded-lg shadow"
+                />
+              </div>
             )}
           </div>
 

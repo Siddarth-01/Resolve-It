@@ -1,11 +1,50 @@
 const express = require("express");
 const router = express.Router();
+const multer = require("multer");
+const path = require("path");
 const Issue = require("../models/Issue");
+
+// Configure multer for image uploads
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+  filename: function (req, file, cb) {
+    // Generate unique filename with timestamp
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(
+      null,
+      file.fieldname + "-" + uniqueSuffix + path.extname(file.originalname)
+    );
+  },
+});
+
+// File filter to accept only images
+const fileFilter = (req, file, cb) => {
+  if (file.mimetype.startsWith("image/")) {
+    cb(null, true);
+  } else {
+    cb(new Error("Only image files are allowed!"), false);
+  }
+};
+
+const upload = multer({
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB limit
+  },
+});
 
 // GET /api/issues - Get all issues
 router.get("/", async (req, res) => {
   try {
-    const issues = await Issue.find().sort({ createdAt: -1 });
+    const { userId } = req.query;
+
+    // If userId is provided, filter issues by userId
+    const filter = userId ? { userId } : {};
+
+    const issues = await Issue.find(filter).sort({ createdAt: -1 });
     res.json(issues);
   } catch (error) {
     res
@@ -30,9 +69,49 @@ router.get("/:id", async (req, res) => {
 });
 
 // POST /api/issues - Create a new issue
-router.post("/", async (req, res) => {
+router.post("/", upload.single("image"), async (req, res) => {
   try {
-    const issue = new Issue(req.body);
+    const { title, description, userId, location, category } = req.body;
+
+    // Validate required fields
+    if (!title || !description || !userId) {
+      return res.status(400).json({
+        message:
+          "Missing required fields: title, description, and userId are required",
+      });
+    }
+
+    // Parse location if it's a string
+    let parsedLocation = {};
+    if (location) {
+      if (typeof location === "string") {
+        try {
+          parsedLocation = JSON.parse(location);
+        } catch (e) {
+          console.log("Error parsing location:", e);
+        }
+      } else {
+        parsedLocation = location;
+      }
+    }
+
+    // Get image URL if file was uploaded
+    let imageUrl = "";
+    if (req.file) {
+      imageUrl = `/uploads/${req.file.filename}`;
+    }
+
+    // Create new issue with explicit field mapping
+    const issueData = {
+      title: title.trim(),
+      description: description.trim(),
+      userId: userId.trim(),
+      imageUrl: imageUrl,
+      location: parsedLocation,
+      category: category || "",
+    };
+
+    const issue = new Issue(issueData);
     const savedIssue = await issue.save();
     res.status(201).json(savedIssue);
   } catch (error) {
@@ -83,6 +162,21 @@ router.delete("/:id", async (req, res) => {
       .status(500)
       .json({ message: "Error deleting issue", error: error.message });
   }
+});
+
+// Error handling middleware for multer
+router.use((error, req, res, next) => {
+  if (error instanceof multer.MulterError) {
+    if (error.code === "LIMIT_FILE_SIZE") {
+      return res
+        .status(400)
+        .json({ message: "File too large. Maximum size is 5MB." });
+    }
+  }
+  if (error.message === "Only image files are allowed!") {
+    return res.status(400).json({ message: "Only image files are allowed!" });
+  }
+  next(error);
 });
 
 module.exports = router;

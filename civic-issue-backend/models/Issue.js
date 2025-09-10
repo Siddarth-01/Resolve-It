@@ -13,6 +13,11 @@ const issueSchema = new mongoose.Schema({
     trim: true,
     maxlength: [1000, "Description cannot be more than 1000 characters"],
   },
+  userId: {
+    type: String,
+    required: [true, "User ID is required"],
+    trim: true,
+  },
   imageUrl: {
     type: String,
     trim: true,

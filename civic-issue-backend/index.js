@@ -2,6 +2,8 @@ const express = require("express");
 const mongoose = require("mongoose");
 const cors = require("cors");
 const dotenv = require("dotenv");
+const multer = require("multer");
+const path = require("path");
 
 // Import routes
 const issueRoutes = require("./routes/issueRoutes");
@@ -16,6 +18,9 @@ const PORT = process.env.PORT || 5000;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from uploads directory
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // MongoDB connection
 const connectDB = async () => {
