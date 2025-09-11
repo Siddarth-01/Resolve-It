@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import LocationPicker from "./LocationPicker";
@@ -20,6 +20,13 @@ const IssueForm = () => {
   const [imagePreview, setImagePreview] = useState(null);
   const [locationMode, setLocationMode] = useState("current"); // "current" or "manual"
   const [showCamera, setShowCamera] = useState(false);
+
+  // Speech recognition states
+  const [isListening, setIsListening] = useState(false);
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechError, setSpeechError] = useState("");
+  const recognitionRef = useRef(null);
+  const interimResultRef = useRef("");
 
   // Auto-detect location when component mounts if current location mode is selected
   useEffect(() => {
@@ -56,6 +63,106 @@ const IssueForm = () => {
       }
     }
   }, [locationMode]);
+
+  // Initialize speech recognition
+  useEffect(() => {
+    // Check if speech recognition is supported
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      setSpeechSupported(true);
+      recognitionRef.current = new SpeechRecognition();
+
+      const recognition = recognitionRef.current;
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = "en-US";
+
+      recognition.onstart = () => {
+        setIsListening(true);
+        setSpeechError("");
+      };
+
+      recognition.onresult = (event) => {
+        let finalTranscript = "";
+        let interimTranscript = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const transcript = event.results[i][0].transcript;
+
+          if (event.results[i].isFinal) {
+            finalTranscript += transcript;
+          } else {
+            interimTranscript += transcript;
+          }
+        }
+
+        // Update the form data with final results
+        if (finalTranscript) {
+          setFormData((prev) => ({
+            ...prev,
+            description: prev.description + finalTranscript,
+          }));
+        }
+
+        // Store interim results
+        interimResultRef.current = interimTranscript;
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        let errorMessage = "";
+
+        switch (event.error) {
+          case "not-allowed":
+          case "permission-denied":
+            errorMessage =
+              "Microphone access denied. Please enable microphone permissions.";
+            break;
+          case "no-speech":
+            errorMessage = "No speech detected. Please try again.";
+            break;
+          case "network":
+            errorMessage = "Network error. Please check your connection.";
+            break;
+          default:
+            errorMessage = "Speech recognition error. Please try again.";
+        }
+
+        setSpeechError(errorMessage);
+        setIsListening(false);
+
+        // Show error as toast
+        toast.error(errorMessage);
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        // Clear interim results when recognition ends
+        interimResultRef.current = "";
+      };
+    } else {
+      setSpeechSupported(false);
+    }
+
+    // Cleanup function
+    return () => {
+      if (recognitionRef.current && isListening) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Clear speech error after a delay
+  useEffect(() => {
+    if (speechError) {
+      const timer = setTimeout(() => {
+        setSpeechError("");
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [speechError]);
 
   // Cleanup preview URL when component unmounts
   useEffect(() => {
@@ -124,6 +231,39 @@ const IssueForm = () => {
     if (imagePreview) URL.revokeObjectURL(imagePreview);
     setImagePreview(URL.createObjectURL(file));
     setShowCamera(false);
+  };
+
+  // Speech recognition handlers
+  const startListening = () => {
+    if (!speechSupported) {
+      toast.error(
+        "Speech recognition is not supported in this browser. Please use Chrome."
+      );
+      return;
+    }
+
+    if (!isListening && recognitionRef.current) {
+      try {
+        recognitionRef.current.start();
+      } catch (error) {
+        console.error("Error starting speech recognition:", error);
+        toast.error("Failed to start speech recognition. Please try again.");
+      }
+    }
+  };
+
+  const stopListening = () => {
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+    }
+  };
+
+  const toggleListening = () => {
+    if (isListening) {
+      stopListening();
+    } else {
+      startListening();
+    }
   };
 
   const handleLocationModeChange = (mode) => {
@@ -359,16 +499,75 @@ const IssueForm = () => {
               >
                 Issue Description
               </label>
-              <textarea
-                id="description"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
-                className="w-full border rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-400 outline-none transition-colors resize-vertical"
-                placeholder="Provide detailed description of the issue"
-                required
-              />
+              <div className="relative">
+                <textarea
+                  id="description"
+                  name="description"
+                  value={
+                    formData.description +
+                    (isListening ? interimResultRef.current : "")
+                  }
+                  onChange={handleInputChange}
+                  rows={4}
+                  className="w-full border rounded-lg px-3 py-2 pr-12 focus:ring-2 focus:ring-blue-400 outline-none transition-colors resize-vertical"
+                  placeholder="Provide detailed description of the issue"
+                  required
+                />
+                {speechSupported && (
+                  <button
+                    type="button"
+                    onClick={toggleListening}
+                    className={`absolute right-2 top-2 p-2 rounded-lg transition-all duration-200 ${
+                      isListening
+                        ? "bg-red-100 text-red-600 hover:bg-red-200 animate-pulse"
+                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                    }`}
+                    title={isListening ? "Stop listening" : "Start voice input"}
+                    disabled={!speechSupported}
+                  >
+                    {isListening ? (
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    ) : (
+                      <svg
+                        className="w-5 h-5"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </button>
+                )}
+              </div>
+              {isListening && (
+                <p className="mt-1 text-sm text-blue-600 flex items-center">
+                  <span className="animate-pulse mr-2">🔴</span>
+                  Listening... Speak clearly into your microphone
+                </p>
+              )}
+              {speechError && (
+                <p className="mt-1 text-sm text-red-600">{speechError}</p>
+              )}
+              {!speechSupported && (
+                <p className="mt-1 text-sm text-yellow-600">
+                  Voice input not supported. Please use Chrome for speech
+                  recognition.
+                </p>
+              )}
             </div>
 
             {/* File Upload */}
