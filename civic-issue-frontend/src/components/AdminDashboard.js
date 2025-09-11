@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import toast from "react-hot-toast";
 import AdminIssueDetailModal from "./AdminIssueDetailModal";
 import { useAuth } from "../contexts/AuthContext";
@@ -18,30 +18,47 @@ const AdminDashboard = () => {
     limit: 10,
   });
   const [userProfiles, setUserProfiles] = useState({});
+  const prevIssuesRef = useRef([]);
 
-  // Fetch user profiles from Firebase (for citizen names)
-  const fetchUserProfiles = useCallback(async (userIds) => {
-    try {
-      const profiles = {};
+  // Fetch user profiles from backend API (for citizen names and emails)
+  const fetchUserProfiles = useCallback(
+    async (userIds) => {
+      try {
+        if (!userIds || userIds.length === 0) return;
 
-      // Since we don't have direct access to Firebase Admin SDK in frontend,
-      // we'll use the userId as display name for now
-      // In a real app, you'd have an API endpoint to fetch user profiles
-      userIds.forEach((userId) => {
-        if (userId) {
-          profiles[userId] = {
-            displayName: `User ${userId.slice(-6)}`, // Show last 6 chars of userId
-            email: `user-${userId.slice(-6)}@example.com`,
-          };
+        console.log("🔍 Fetching user profiles for IDs:", userIds);
+
+        const response = await fetch(
+          `http://localhost:3001/api/admin/users/batch`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              userIds: userIds,
+              email: currentUser?.email,
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log("✅ Fetched real user profiles from API:", data.profiles);
+          setUserProfiles(data.profiles || {});
+        } else {
+          console.warn("⚠️ API failed, response status:", response.status);
+          // If API fails, don't set any fallback data - let the display functions handle it
+          setUserProfiles({});
         }
-      });
-
-      setUserProfiles(profiles);
-    } catch (err) {
-      console.error("Error fetching user profiles:", err);
-      // Don't fail the whole component if user profiles fail
-    }
-  }, []);
+      } catch (err) {
+        console.error("❌ Error fetching user profiles:", err);
+        // If there's a network error, don't set any fallback data
+        setUserProfiles({});
+      }
+    },
+    [currentUser?.email]
+  );
 
   // Fetch issues from backend
   const fetchIssues = useCallback(
@@ -59,7 +76,23 @@ const AdminDashboard = () => {
         }
 
         const data = await response.json();
+
+        // Compare statuses with previous issues and notify if changed
+        const prevStatuses = {};
+        prevIssuesRef.current.forEach((iss) => {
+          prevStatuses[iss._id] = iss.status;
+        });
+
+        data.issues.forEach((iss) => {
+          const oldStatus = prevStatuses[iss._id];
+          if (oldStatus && oldStatus !== iss.status) {
+            toast.success(`Your issue '${iss.title}' is now ${iss.status}`);
+          }
+        });
+
         setIssues(data.issues);
+        // update ref for next comparison
+        prevIssuesRef.current = data.issues;
         setPagination(data.pagination);
 
         // Fetch user profiles for citizen names
@@ -108,7 +141,10 @@ const AdminDashboard = () => {
         prevIssues.map((issue) => (issue._id === issueId ? data.issue : issue))
       );
 
-      toast.success(`Issue status updated to ${newStatus}`);
+      toast.success("Status updated");
+
+      // Refresh the full list to pick up any changes
+      fetchIssues(pagination.currentPage);
     } catch (err) {
       console.error("Error updating issue status:", err);
       toast.error("Failed to update issue status");
@@ -125,6 +161,9 @@ const AdminDashboard = () => {
         issue._id === updatedIssue._id ? updatedIssue : issue
       )
     );
+
+    // Refresh list to ensure pagination/filters and to pick up any other changes
+    fetchIssues(pagination.currentPage);
   };
 
   // Load issues on component mount
@@ -187,12 +226,33 @@ const AdminDashboard = () => {
     fetchIssues(newPage);
   };
 
-  // Get citizen name
+  // Get citizen name and email from fetched profiles
   const getCitizenName = (userId) => {
     if (!userId) {
       return "Unknown User";
     }
-    return userProfiles[userId]?.displayName || `User ${userId.slice(-6)}`;
+
+    const profile = userProfiles[userId];
+    if (profile?.displayName) {
+      return profile.displayName;
+    }
+
+    // If profile missing or missing displayName, show explicit Unknown
+    return "Unknown User";
+  };
+
+  const getCitizenEmail = (userId) => {
+    if (!userId) {
+      return "No email";
+    }
+
+    const profile = userProfiles[userId];
+    if (profile?.email) {
+      return profile.email;
+    }
+
+    // If profile missing or missing email, show explicit No email
+    return "No email";
   };
 
   // Loading state
@@ -422,6 +482,9 @@ const AdminDashboard = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="text-sm text-gray-900">
                       {getCitizenName(issue.userId)}
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {getCitizenEmail(issue.userId)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">

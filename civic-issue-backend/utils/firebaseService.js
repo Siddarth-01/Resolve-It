@@ -44,7 +44,6 @@ const getUserEmailFromFirebase = async (uid) => {
 
       // Development fallback - you can customize this mapping
       const devEmailMap = {
-        hRKohnlbkJZpgxEOr3Gk7hkYU6Y2: "siddharth05p@gmail.com", // Your test user
         "test-user-123": "test1@example.com",
         "firebase-test-user-456": "test2@example.com",
         "frontend-test-user-789": "test3@example.com",
@@ -84,30 +83,56 @@ const getUserEmailFromFirebase = async (uid) => {
  */
 const getUserProfileFromFirebase = async (uid) => {
   try {
+    console.log(`🔍 Fetching user profile for UID: ${uid}`);
+
     if (!admin.apps.length) {
-      console.log("⚠️  Firebase not initialized. Using fallback profile.");
-      return {
-        email: "user@example.com",
-        displayName: "Test User",
-        uid: uid,
-      };
+      console.log(
+        "⚠️  Firebase not initialized. Cannot fetch real user profile."
+      );
+
+      // Do not return fabricated user data. Return null so callers
+      // can clearly show 'Unknown user' in the admin UI instead of fake data.
+      return null;
     }
 
+    // Fetch real user data from Firebase Auth
+    console.log(
+      `🔥 Firebase is initialized. Fetching real user data for ${uid}`
+    );
     const userRecord = await admin.auth().getUser(uid);
 
-    return {
+    const profile = {
       uid: userRecord.uid,
-      email: userRecord.email,
-      displayName: userRecord.displayName || "Citizen",
+      email: userRecord.email || "No email provided",
+      displayName:
+        userRecord.displayName || userRecord.email?.split("@")[0] || "User",
       emailVerified: userRecord.emailVerified,
       creationTime: userRecord.metadata.creationTime,
       lastSignInTime: userRecord.metadata.lastSignInTime,
     };
+
+    console.log(`✅ Successfully fetched real user profile for ${uid}:`, {
+      email: profile.email,
+      displayName: profile.displayName,
+    });
+
+    return profile;
   } catch (error) {
     console.error("❌ Error getting user profile from Firebase:", {
       uid,
       error: error.message,
+      code: error.code,
     });
+
+    // If user is not found in Firebase Auth, return null so the admin UI
+    // can present a clear 'user not found' state for that issue.
+    if (error.code === "auth/user-not-found") {
+      console.log(`� User ${uid} not found in Firebase Auth`);
+      return null;
+    }
+
+    // For other errors (connectivity, permissions), return null as a safe
+    // default. Callers may retry or surface an error to the admin.
     return null;
   }
 };

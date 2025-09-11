@@ -1,4 +1,6 @@
 const nodemailer = require("nodemailer");
+// Ensure environment variables are loaded when this module is required
+require("dotenv").config();
 
 /**
  * Send email using nodemailer with Gmail/SMTP
@@ -10,6 +12,16 @@ const nodemailer = require("nodemailer");
  */
 const sendEmail = async (to, subject, text, html = null) => {
   try {
+    // Basic guard: ensure credentials are present
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.warn(
+        "⚠️ Email credentials missing: set EMAIL_USER and EMAIL_PASS in .env"
+      );
+      return {
+        success: false,
+        error: "Missing email credentials",
+      };
+    }
     // Create transporter using environment variables
     const transporter = nodemailer.createTransport({
       service: process.env.EMAIL_SERVICE || "gmail",

@@ -51,6 +51,8 @@ app.get("/", (req, res) => {
 app.use("/api/issues", issueRoutes);
 app.use("/api/admin", adminRoutes);
 
+console.log("📋 Admin routes registered at /api/admin");
+
 // Start server
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

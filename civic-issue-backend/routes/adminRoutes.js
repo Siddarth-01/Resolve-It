@@ -2,6 +2,83 @@ const express = require("express");
 const router = express.Router();
 const Issue = require("../models/Issue");
 const { verifyAdminAccess } = require("../middleware/adminAuth");
+const {
+  getUserProfileFromFirebase,
+  getUserEmailFromFirebase,
+} = require("../utils/firebaseService");
+const { sendEmail } =
+  require("../utils/emailService") || require("../utils/emailService");
+
+// GET /api/admin/users/:uid - Get user profile by UID
+router.get("/users/:uid", verifyAdminAccess, async (req, res) => {
+  try {
+    const { uid } = req.params;
+
+    if (!uid) {
+      return res.status(400).json({
+        message: "User ID is required",
+      });
+    }
+
+    const userProfile = await getUserProfileFromFirebase(uid);
+
+    if (!userProfile) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json({
+      user: userProfile,
+    });
+  } catch (error) {
+    console.error("Error fetching user profile:", error);
+    res.status(500).json({
+      message: "Error fetching user profile",
+      error: error.message,
+    });
+  }
+});
+
+// GET /api/admin/users/batch - Get multiple user profiles by UIDs
+router.post("/users/batch", verifyAdminAccess, async (req, res) => {
+  try {
+    const { userIds } = req.body;
+
+    if (!userIds || !Array.isArray(userIds)) {
+      return res.status(400).json({
+        message: "userIds array is required",
+      });
+    }
+
+    const profiles = {};
+
+    // Fetch all user profiles
+    await Promise.all(
+      userIds.map(async (uid) => {
+        try {
+          const profile = await getUserProfileFromFirebase(uid);
+          if (profile) {
+            profiles[uid] = profile;
+          }
+        } catch (error) {
+          console.error(`Error fetching profile for ${uid}:`, error);
+          // Continue with other users even if one fails
+        }
+      })
+    );
+
+    res.json({
+      profiles,
+    });
+  } catch (error) {
+    console.error("Error fetching user profiles:", error);
+    res.status(500).json({
+      message: "Error fetching user profiles",
+      error: error.message,
+    });
+  }
+});
 
 // GET /api/admin/issues - Get all issues (sorted by createdAt desc)
 router.get("/issues", verifyAdminAccess, async (req, res) => {
@@ -112,6 +189,8 @@ router.put("/issues/:id", verifyAdminAccess, async (req, res) => {
     if (adminNote !== undefined) {
       updateData.adminNote = adminNote;
     }
+    // Always update updatedAt
+    updateData.updatedAt = Date.now();
 
     // Update the issue
     const updatedIssue = await Issue.findByIdAndUpdate(
@@ -128,6 +207,51 @@ router.put("/issues/:id", verifyAdminAccess, async (req, res) => {
       console.log(
         `📋 Admin status update: Issue ${req.params.id} changed from "${originalIssue.status}" to "${status}"`
       );
+      // Try to notify the citizen by email
+      try {
+        const citizenUid = originalIssue.userId;
+        let citizenEmail = null;
+
+        if (citizenUid) {
+          // Try Firebase Auth first
+          citizenEmail = await getUserEmailFromFirebase(citizenUid);
+        }
+
+        // If still no email, skip sending
+        if (citizenEmail) {
+          const subject = "Update on your issue report";
+          const text = `Your issue '${originalIssue.title}' is now ${status}`;
+          // sendEmail is resilient and logs failures
+          sendEmail(citizenEmail, subject, text)
+            .then((result) => {
+              if (result && result.success) {
+                console.log(
+                  `✉️ Notification sent to ${citizenEmail} for issue ${req.params.id}`
+                );
+              } else {
+                console.warn(
+                  `⚠️ Failed to send notification to ${citizenEmail}:`,
+                  result && result.error
+                );
+              }
+            })
+            .catch((err) => {
+              console.error(
+                `❌ Error sending notification to ${citizenEmail}:`,
+                err && err.message
+              );
+            });
+        } else {
+          console.log(
+            `ℹ️ No email found for UID ${citizenUid}; skipping notification`
+          );
+        }
+      } catch (emailErr) {
+        console.error(
+          "❌ Error while attempting to notify citizen:",
+          emailErr && emailErr.message
+        );
+      }
     }
 
     res.json({

@@ -63,9 +63,19 @@ const AdminIssueDetailModal = ({
     }
 
     const profile = userProfiles[userId];
+    if (profile) {
+      return {
+        name: profile.displayName || "Citizen",
+        email: profile.email || "No email provided",
+        uid: userId,
+      };
+    }
+
+    // If profile is missing, show explicit unknown values
     return {
-      name: profile?.displayName || `User ${userId.slice(-6)}`,
-      email: profile?.email || `user-${userId.slice(-6)}@example.com`,
+      name: "Unknown User",
+      email: "No email",
+      uid: userId,
     };
   };
 
