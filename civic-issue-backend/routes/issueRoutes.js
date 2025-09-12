@@ -8,6 +8,10 @@ const {
   getUserEmailFromFirebase,
   getUserProfileFromFirebase,
 } = require("../utils/firebaseService");
+const {
+  classifyIssue,
+  getCategories,
+} = require("../utils/classificationService");
 
 // Configure multer for image uploads
 const storage = multer.diskStorage({
@@ -55,6 +59,44 @@ router.get("/", async (req, res) => {
     res
       .status(500)
       .json({ message: "Error fetching issues", error: error.message });
+  }
+});
+
+// GET /api/issues/categories - Get available issue categories
+router.get("/categories", async (req, res) => {
+  try {
+    const categories = getCategories();
+    res.json({ categories });
+  } catch (error) {
+    res.status(500).json({
+      message: "Error fetching categories",
+      error: error.message,
+    });
+  }
+});
+
+// POST /api/issues/classify - Classify text without creating an issue
+router.post("/classify", async (req, res) => {
+  try {
+    const { title, description } = req.body;
+
+    if (!title && !description) {
+      return res.status(400).json({
+        message: "Title or description is required for classification",
+      });
+    }
+
+    const classificationResult = await classifyIssue(
+      description || "",
+      title || ""
+    );
+
+    res.json(classificationResult);
+  } catch (error) {
+    res.status(500).json({
+      message: "Error classifying text",
+      error: error.message,
+    });
   }
 });
 
@@ -136,6 +178,20 @@ router.post("/", upload.single("image"), async (req, res) => {
       imageUrl = `/uploads/${req.file.filename}`;
     }
 
+    // Classify the issue using AI
+    let classificationResult = null;
+    try {
+      console.log("🤖 Starting AI classification for issue...");
+      classificationResult = await classifyIssue(
+        description.trim(),
+        title.trim()
+      );
+      console.log("✅ Classification result:", classificationResult);
+    } catch (error) {
+      console.error("❌ Classification error:", error);
+      // Continue with issue creation even if classification fails
+    }
+
     // Create new issue with explicit field mapping
     const issueData = {
       title: title.trim(),
@@ -143,7 +199,17 @@ router.post("/", upload.single("image"), async (req, res) => {
       userId: userId.trim(),
       imageUrl: imageUrl,
       location: parsedLocation,
-      category: category || "",
+      category:
+        category || (classificationResult ? classificationResult.category : ""),
+      predictedCategory: classificationResult
+        ? classificationResult.category
+        : "",
+      categoryConfidence: classificationResult
+        ? classificationResult.confidence
+        : 0,
+      categoryMethod: classificationResult
+        ? classificationResult.method
+        : "manual",
     };
 
     const issue = new Issue(issueData);

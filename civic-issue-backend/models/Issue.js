@@ -38,6 +38,26 @@ const issueSchema = new mongoose.Schema({
     type: String,
     trim: true,
   },
+  predictedCategory: {
+    type: String,
+    trim: true,
+  },
+  categoryConfidence: {
+    type: Number,
+    min: 0,
+    max: 1,
+  },
+  categoryMethod: {
+    type: String,
+    enum: [
+      "ai-classification",
+      "keyword-based",
+      "keyword-fallback",
+      "default",
+      "manual",
+    ],
+    default: "manual",
+  },
   status: {
     type: String,
     enum: {
